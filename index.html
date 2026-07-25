@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SkyCast — Live Weather Dashboard</title>
+    <meta
+      name="description"
+      content="SkyCast is a live weather dashboard showing current conditions, hourly and 7-day forecasts, air quality, wind, humidity and comfort insights for any city in the world."
+    />
+    <meta name="theme-color" content="#0b1220" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>%E2%9B%85</text></svg>"
+    />
+
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css"
+    />
+
+    <link rel="stylesheet" href="css/style.css" />
+  </head>
+  <body>
+    <div class="app" id="app">
+      <!-- Fixed background layer (theme-specific photo + tint) -->
+      <div class="bg-layer" aria-hidden="true"></div>
+
+      <!-- ============ SIDEBAR ============ -->
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="brand-icon"><i class="fa-solid fa-cloud-sun"></i></div>
+          <div>
+            <p class="brand-name">SkyCast</p>
+            <p class="brand-tag">Weather Dashboard</p>
+          </div>
+        </div>
+        <div class="clock-card">
+          <h1 id="clock">--:--</h1>
+          <p id="clockDate">--</p>
+        </div>
+        <nav class="nav" aria-label="Primary navigation">
+          <a class="nav-link is-active" href="#dashboard" data-view="dashboard">
+            <i class="fa-solid fa-house nav-icon"></i> Dashboard
+          </a>
+          <a class="nav-link" href="#analytics" data-view="analytics">
+            <i class="fa-solid fa-chart-line nav-icon"></i> Analytics
+          </a>
+          <a class="nav-link" href="#saved" data-view="saved">
+            <i class="fa-solid fa-location-dot nav-icon"></i> Saved Locations
+          </a>
+          <a class="nav-link" href="#hourly" data-view="hourly">
+            <i class="fa-regular fa-clock nav-icon"></i> Hourly Forecast
+          </a>
+          <a class="nav-link" href="#air-quality" data-view="air-quality">
+            <i class="fa-solid fa-wind nav-icon"></i> Air Quality
+          </a>
+          <a class="nav-link" href="#daily" data-view="daily">
+            <i class="fa-regular fa-calendar-days nav-icon"></i> 7 Day Forecast
+          </a>
+
+          <a class="nav-link" href="#settings" data-view="settings">
+            <i class="fa-solid fa-gear nav-icon"></i> Settings
+          </a>
+        </nav>
+
+        <div id="settings" class="sidebar-settings">
+          <div class="unit-toggle" role="group" aria-label="Temperature unit">
+            <button
+              type="button"
+              id="unitC"
+              class="unit-btn is-active"
+              aria-pressed="true"
+            >
+              °C
+            </button>
+            <button
+              type="button"
+              id="unitF"
+              class="unit-btn"
+              aria-pressed="false"
+            >
+              °F
+            </button>
+          </div>
+          <button type="button" id="themeBtn" class="theme-toggle-full">
+            <i class="fa-solid fa-moon"></i>
+            <span id="themeLabel">Dark theme</span>
+          </button>
+        </div>
+
+        <div class="tip-card" id="tipCard">
+          <div class="tip-icon"><i class="fa-solid fa-lightbulb"></i></div>
+          <h3>Today's Tip</h3>
+          <p id="tipText">
+            Search a city or allow location access to get a personalized tip.
+          </p>
+        </div>
+      </aside>
+
+      <!-- ============ MAIN ============ -->
+      <div class="main">
+        <header class="topbar">
+          <form class="search" id="searchForm" role="search">
+            <label for="citySearch" class="sr-only">Search for a city</label>
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input
+              type="text"
+              id="citySearch"
+              name="city"
+              placeholder="Search for a city…"
+              autocomplete="off"
+              aria-describedby="searchStatus"
+            />
+            <ul id="searchResults" class="search-results" hidden></ul>
+          </form>
+          <p
+            id="searchStatus"
+            class="sr-only"
+            role="status"
+            aria-live="polite"
+          ></p>
+
+          <div class="topbar-actions">
+            <button
+              type="button"
+              id="geoBtn"
+              class="icon-btn"
+              title="Use my location"
+              aria-label="Use my current location"
+            >
+              <i class="fa-solid fa-location-crosshairs"></i>
+              <span class="geo-label">My Location</span>
+            </button>
+            <button
+              type="button"
+              id="refreshBtn"
+              class="icon-btn icon-only"
+              title="Refresh data"
+              aria-label="Refresh weather data"
+            >
+              <i class="fa-solid fa-rotate"></i>
+            </button>
+            <button
+              type="button"
+              id="mobileMenuBtn"
+              class="icon-btn icon-only nav-toggle"
+              aria-label="Toggle navigation"
+              aria-expanded="false"
+            >
+              <i class="fa-solid fa-bars"></i>
+            </button>
+          </div>
+        </header>
+
+        <p id="liveStatus" class="sr-only" role="status" aria-live="polite"></p>
+
+        <div id="errorBanner" class="error-banner" hidden role="alert">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span id="errorText"></span>
+          <button type="button" id="errorDismiss" aria-label="Dismiss error">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <main id="dashboard">
+          <!-- HERO -->
+          <section
+            class="card hero-card"
+            id="currentWeather"
+            data-condition="default"
+            aria-labelledby="currentLocationName"
+          >
+            <div class="hero-top">
+              <div>
+                <h1 id="currentLocationName" class="location-name">
+                  <i class="fa-solid fa-location-dot pin"></i
+                  ><span id="locationText">Loading…</span>
+                </h1>
+                <p id="currentDate" class="location-date">—</p>
+              </div>
+              <div class="aqi-chip" id="aqiChip">
+                <i class="fa-solid fa-leaf"></i>
+                <span class="aqi-label">AQI</span>
+                <span id="aqiValueChip">—</span>
+                <span id="aqiWordChip">—</span>
+              </div>
+            </div>
+
+            <div class="hero-main">
+              <div class="hero-temp-block">
+                <p class="hero-temp">
+                  <span id="currentTemp">--</span
+                  ><span class="deg">°<span id="unitLabelMain">C</span></span>
+                </p>
+                <p class="hero-desc" id="currentDesc">—</p>
+                <p class="hero-feels">
+                  Feels like <span id="feelsLike">--°</span>
+                </p>
+              </div>
+              <div class="hero-icon" id="currentIcon" aria-hidden="true">
+                <i class="fa-solid fa-cloud-sun"></i>
+              </div>
+            </div>
+
+            <dl class="hero-stats" id="heroStats">
+              <div class="stat">
+                <dt><i class="fa-solid fa-wind"></i> Wind</dt>
+                <dd id="statWind">--</dd>
+              </div>
+              <div class="stat">
+                <dt><i class="fa-solid fa-droplet"></i> Humidity</dt>
+                <dd id="statHumidity">--</dd>
+              </div>
+              <div class="stat">
+                <dt><i class="fa-solid fa-gauge-high"></i> Pressure</dt>
+                <dd id="statPressure">--</dd>
+              </div>
+              <div class="stat">
+                <dt><i class="fa-solid fa-eye"></i> Visibility</dt>
+                <dd id="statVisibility">--</dd>
+              </div>
+              <div class="stat">
+                <dt><i class="fa-solid fa-sun"></i> UV Index</dt>
+                <dd id="statUV">--</dd>
+              </div>
+            </dl>
+          </section>
+
+          <!-- HOURLY -->
+          <section class="card" id="hourly" aria-labelledby="hourlyHeading">
+            <div class="card-header">
+              <h2 id="hourlyHeading">
+                <i class="fa-regular fa-clock"></i> Hourly Forecast
+              </h2>
+            </div>
+            <div class="hourly-scroll" id="hourlyList" aria-live="polite"></div>
+          </section>
+
+          <!-- SIDE: SUN / AQI / PRECIP -->
+          <div class="side-stack">
+            <section class="card" id="sunCard" aria-labelledby="sunHeading">
+              <h2 id="sunHeading">
+                <i class="fa-solid fa-sun"></i> Sunrise &amp; Sunset
+              </h2>
+              <div class="sun-arc" aria-hidden="true">
+                <span class="sun-dot" id="sunDot"
+                  ><i class="fa-solid fa-sun"></i
+                ></span>
+              </div>
+              <div class="sun-times">
+                <div>
+                  <p class="muted">Sunrise</p>
+                  <p id="sunrise">--:--</p>
+                </div>
+                <div>
+                  <p class="muted">Sunset</p>
+                  <p id="sunset">--:--</p>
+                </div>
+              </div>
+              <p class="day-length muted">
+                Day length <strong id="dayLength">--</strong>
+              </p>
+            </section>
+
+            <section class="card" id="air-quality" aria-labelledby="aqiHeading">
+              <h2 id="aqiHeading">
+                <i class="fa-solid fa-leaf"></i> Air Quality Index
+              </h2>
+              <div class="aqi-gauge">
+                <p class="aqi-big" id="aqiBig">--</p>
+                <p class="aqi-word" id="aqiWord">—</p>
+              </div>
+              <p class="muted aqi-desc" id="aqiDesc">
+                Air quality data will appear here once loaded.
+              </p>
+              <dl class="aqi-components" id="aqiComponents" hidden>
+                <div>
+                  <dt>PM2.5</dt>
+                  <dd id="compPm25">--</dd>
+                </div>
+                <div>
+                  <dt>PM10</dt>
+                  <dd id="compPm10">--</dd>
+                </div>
+                <div>
+                  <dt>O₃</dt>
+                  <dd id="compO3">--</dd>
+                </div>
+                <div>
+                  <dt>NO₂</dt>
+                  <dd id="compNo2">--</dd>
+                </div>
+              </dl>
+            </section>
+
+            <section class="card" id="precip" aria-labelledby="precipHeading">
+              <h2 id="precipHeading">
+                <i class="fa-solid fa-cloud-rain"></i> Precipitation
+              </h2>
+              <p class="precip-value">
+                <span id="precipNow">--%</span>
+                <span class="muted">chance of rain</span>
+              </p>
+              <div class="precip-bars" id="precipBars" aria-hidden="true"></div>
+            </section>
+          </div>
+
+          <!-- 7 DAY -->
+          <section class="card" id="daily" aria-labelledby="dailyHeading">
+            <div class="card-header">
+              <h2 id="dailyHeading">
+                <i class="fa-regular fa-calendar-days"></i> 7 Day Forecast
+              </h2>
+            </div>
+            <ul class="daily-list" id="dailyList"></ul>
+          </section>
+
+          <!-- ANALYTICS: wind / humidity / comfort -->
+          <section
+            class="analytics-grid"
+            id="analytics"
+            aria-labelledby="analyticsHeading"
+          >
+            <h2 id="analyticsHeading" class="sr-only">Weather Analytics</h2>
+
+            <div class="card analytics-card" id="windCard">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-compass"></i> Wind</h3>
+                <span class="pill">Live</span>
+              </div>
+              <div class="wind-compass" aria-hidden="true">
+                <span class="wc-n">N</span><span class="wc-e">E</span
+                ><span class="wc-s">S</span><span class="wc-w">W</span>
+                <div class="wc-needle" id="windNeedle">
+                  <i class="fa-solid fa-location-arrow"></i>
+                </div>
+              </div>
+              <dl class="mini-rows">
+                <div>
+                  <dt>Speed</dt>
+                  <dd id="windSpeedFull">--</dd>
+                </div>
+                <div>
+                  <dt>Direction</dt>
+                  <dd id="windDirection">--</dd>
+                </div>
+                <div>
+                  <dt>Gust</dt>
+                  <dd id="windGust">--</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="card analytics-card" id="humidityCard">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-droplet"></i> Humidity</h3>
+                <span class="pill">Live</span>
+              </div>
+              <div class="ring" id="humidityRing" style="--pct: 0">
+                <div class="ring-inner">
+                  <h3 id="humidityRingValue">--%</h3>
+                  <span>Relative</span>
+                </div>
+              </div>
+              <dl class="mini-rows">
+                <div>
+                  <dt>Dew Point</dt>
+                  <dd id="dewPoint">--</dd>
+                </div>
+                <div>
+                  <dt>Comfort</dt>
+                  <dd id="humidityComfort">--</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="card analytics-card" id="comfortCard">
+              <div class="card-header">
+                <h3><i class="fa-solid fa-face-smile"></i> Comfort Index</h3>
+                <span class="pill">Estimated</span>
+              </div>
+              <div class="ring" id="comfortRing" style="--pct: 0">
+                <div class="ring-inner">
+                  <h3 id="comfortScore">--</h3>
+                  <span>/100</span>
+                </div>
+              </div>
+              <p class="muted comfort-note">
+                Estimated from temperature, humidity &amp; wind — not an
+                official metric.
+              </p>
+            </div>
+          </section>
+
+          <!-- SAVED LOCATIONS -->
+          <section class="card" id="saved" aria-labelledby="savedHeading">
+            <div class="card-header">
+              <h2 id="savedHeading">
+                <i class="fa-solid fa-location-dot"></i> Saved Locations
+              </h2>
+            </div>
+            <ul class="saved-list" id="savedList"></ul>
+            <form id="addLocationForm" class="add-location">
+              <label for="addLocationInput" class="sr-only"
+                >Add a city to saved locations</label
+              >
+              <input
+                type="text"
+                id="addLocationInput"
+                placeholder="Add a city…"
+                autocomplete="off"
+              />
+              <button type="submit">
+                <i class="fa-solid fa-plus"></i> Add
+              </button>
+            </form>
+          </section>
+        </main>
+
+        <footer class="footer">
+          <p>
+            Weather data provided by
+            <a
+              href="https://openweathermap.org/"
+              target="_blank"
+              rel="noopener noreferrer"
+              >OpenWeatherMap</a
+            >. Built with vanilla HTML, CSS &amp; JavaScript.
+          </p>
+        </footer>
+      </div>
+    </div>
+
+    <!-- Templates -->
+    <template id="hourlyItemTemplate">
+      <div class="hour-item">
+        <p class="hour-label"></p>
+        <p class="hour-icon" aria-hidden="true"></p>
+        <p class="hour-temp"></p>
+        <p class="hour-precip"></p>
+      </div>
+    </template>
+
+    <template id="dailyItemTemplate">
+      <li class="day-row">
+        <div class="day-name">
+          <p class="day-of-week"></p>
+          <p class="day-date muted"></p>
+        </div>
+        <p class="day-icon" aria-hidden="true"></p>
+        <p class="day-low"></p>
+        <div class="day-bar"><span class="day-bar-fill"></span></div>
+        <p class="day-high"></p>
+        <p class="day-rain"></p>
+      </li>
+    </template>
+
+    <template id="savedItemTemplate">
+      <li class="saved-row">
+        <button type="button" class="saved-select">
+          <span class="saved-icon" aria-hidden="true"></span>
+          <span class="saved-name"></span>
+        </button>
+        <span class="saved-temp"></span>
+        <button type="button" class="saved-remove" aria-label="Remove location">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </li>
+    </template>
+
+    <script src="js/api.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
